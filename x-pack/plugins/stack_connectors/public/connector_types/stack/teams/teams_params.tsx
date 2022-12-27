@@ -10,6 +10,15 @@ import { i18n } from '@kbn/i18n';
 import type { ActionParamsProps } from '@kbn/triggers-actions-ui-plugin/public';
 import { TextAreaWithMessageVariables } from '@kbn/triggers-actions-ui-plugin/public';
 import { TeamsActionParams } from '../../types';
+import {
+  EuiSpacer,
+  EuiFormRow,
+  EuiAccordion,
+  EuiButtonEmpty,
+  EuiForm,
+  EuiFieldText
+} from '@elastic/eui';
+import { FormattedMessage } from '@kbn/i18n-react';
 
 const TeamsParamsFields: React.FunctionComponent<ActionParamsProps<TeamsActionParams>> = ({
   actionParams,
@@ -28,17 +37,48 @@ const TeamsParamsFields: React.FunctionComponent<ActionParamsProps<TeamsActionPa
   }, []);
 
   return (
-    <TextAreaWithMessageVariables
-      index={index}
-      editAction={editAction}
-      messageVariables={messageVariables}
-      paramsProperty={'message'}
-      inputTargetValue={message}
-      label={i18n.translate('xpack.stackConnectors.components.teams.messageTextAreaFieldLabel', {
-        defaultMessage: 'Message',
-      })}
-      errors={(errors.message ?? []) as string[]}
-    />
+    <>
+      <TextAreaWithMessageVariables
+        index={index}
+        editAction={editAction}
+        messageVariables={messageVariables}
+        paramsProperty={'message'}
+        inputTargetValue={message}
+        label={i18n.translate('xpack.stackConnectors.components.teams.messageTextAreaFieldLabel', {
+          defaultMessage: 'Message',
+        })}
+        errors={(errors.message ?? []) as string[]}
+      />
+      <EuiSpacer size="m" />
+      <EuiAccordion
+        id={'test'}
+        arrowDisplay="none"
+        paddingSize="l"
+        buttonContent={
+          <EuiButtonEmpty
+              size="xs"
+              data-test-subj={'Test'}
+            >
+              <FormattedMessage
+                id="xpack.triggersActionsUI.sections.actionTypeForm.advancedSettings"
+                defaultMessage="Advanced settings"
+              />
+            </EuiButtonEmpty>
+        }
+      >     
+        <EuiForm component="form">
+          <EuiFormRow label="Title">
+            <EuiFieldText/>
+          </EuiFormRow>
+          <EuiFormRow label="Subtitle">
+            <EuiFieldText/>
+          </EuiFormRow>
+          {/* <EuiFormRow label="Image">
+            <EuiFieldText/>
+          </EuiFormRow> */}
+        </EuiForm>
+      </EuiAccordion>
+    </>
   );
 };
 
