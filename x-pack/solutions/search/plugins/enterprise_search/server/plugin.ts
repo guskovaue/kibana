@@ -5,39 +5,23 @@
  * 2.0.
  */
 
-import { CloudSetup } from '@kbn/cloud-plugin/server';
 import {
   Plugin,
   PluginInitializerContext,
   CoreSetup,
   Logger,
   SavedObjectsServiceStart,
-  IRouter,
   DEFAULT_APP_CATEGORIES,
 } from '@kbn/core/server';
-import { CustomIntegrationsPluginSetup } from '@kbn/custom-integrations-plugin/server';
-import { DataPluginStart } from '@kbn/data-plugin/server/plugin';
 import { ENTERPRISE_SEARCH_APP_ID } from '@kbn/deeplinks-search';
 import { KibanaFeatureScope } from '@kbn/features-plugin/common';
-import { FeaturesPluginSetup } from '@kbn/features-plugin/server';
-import { GlobalSearchPluginSetup } from '@kbn/global-search-plugin/server';
-import type { GuidedOnboardingPluginSetup } from '@kbn/guided-onboarding-plugin/server';
 import { i18n } from '@kbn/i18n';
-import type { LicensingPluginStart } from '@kbn/licensing-plugin/public';
-import { LogsSharedPluginSetup } from '@kbn/logs-shared-plugin/server';
-import type { MlPluginSetup } from '@kbn/ml-plugin/server';
-import { SearchConnectorsPluginSetup } from '@kbn/search-connectors-plugin/server';
-import { SecurityPluginSetup } from '@kbn/security-plugin/server';
-import { SpacesPluginStart } from '@kbn/spaces-plugin/server';
-import { UsageCollectionSetup } from '@kbn/usage-collection-plugin/server';
 
 import {
   ENTERPRISE_SEARCH_OVERVIEW_PLUGIN,
   ENTERPRISE_SEARCH_CONTENT_PLUGIN,
   ELASTICSEARCH_PLUGIN,
   ANALYTICS_PLUGIN,
-  APP_SEARCH_PLUGIN,
-  WORKPLACE_SEARCH_PLUGIN,
   SEARCH_EXPERIENCES_PLUGIN,
   ENTERPRISE_SEARCH_RELEVANCE_LOGS_SOURCE_ID,
   ENTERPRISE_SEARCH_AUDIT_LOGS_SOURCE_ID,
@@ -47,39 +31,29 @@ import {
   AI_SEARCH_PLUGIN,
   APPLICATIONS_PLUGIN,
   SEARCH_PRODUCT_NAME,
+  SEARCH_INDICES,
+  SEARCH_INDICES_START,
 } from '../common/constants';
 
 import {
-  appSearchGuideId,
   websiteSearchGuideId,
   databaseSearchGuideId,
-  appSearchGuideConfig,
   websiteSearchGuideConfig,
   databaseSearchGuideConfig,
 } from '../common/guided_onboarding/search_guide_config';
 
-import {
-  AS_TELEMETRY_NAME,
-  registerTelemetryUsageCollector as registerASTelemetryUsageCollector,
-} from './collectors/app_search/telemetry';
+import { AS_TELEMETRY_NAME } from './collectors/app_search/telemetry';
 import { registerTelemetryUsageCollector as registerCNTelemetryUsageCollector } from './collectors/connectors/telemetry';
 import {
   ES_TELEMETRY_NAME,
   registerTelemetryUsageCollector as registerESTelemetryUsageCollector,
 } from './collectors/enterprise_search/telemetry';
-import {
-  WS_TELEMETRY_NAME,
-  registerTelemetryUsageCollector as registerWSTelemetryUsageCollector,
-} from './collectors/workplace_search/telemetry';
+import { WS_TELEMETRY_NAME } from './collectors/workplace_search/telemetry';
 import { registerEnterpriseSearchIntegrations } from './integrations';
 
 import { entSearchHttpAgent } from './lib/enterprise_search_http_agent';
-import {
-  EnterpriseSearchRequestHandler,
-  IEnterpriseSearchRequestHandler,
-} from './lib/enterprise_search_request_handler';
+import { EnterpriseSearchRequestHandler } from './lib/enterprise_search_request_handler';
 
-import { registerAppSearchRoutes } from './routes/app_search';
 import { registerEnterpriseSearchRoutes } from './routes/enterprise_search';
 import { registerAnalyticsRoutes } from './routes/enterprise_search/analytics';
 import { registerApiKeysRoutes } from './routes/enterprise_search/api_keys';
@@ -88,13 +62,13 @@ import { registerConnectorRoutes } from './routes/enterprise_search/connectors';
 import { registerCrawlerRoutes } from './routes/enterprise_search/crawler/crawler';
 import { registerStatsRoutes } from './routes/enterprise_search/stats';
 import { registerTelemetryRoute } from './routes/enterprise_search/telemetry';
-import { registerWorkplaceSearchRoutes } from './routes/workplace_search';
 
 import { appSearchTelemetryType } from './saved_objects/app_search/telemetry';
 import { enterpriseSearchTelemetryType } from './saved_objects/enterprise_search/telemetry';
 import { workplaceSearchTelemetryType } from './saved_objects/workplace_search/telemetry';
 
 import { GlobalConfigService } from './services/global_config_service';
+import type { PluginsSetup, PluginsStart, RouteDependencies } from './types';
 import { uiSettings as enterpriseSearchUISettings } from './ui_settings';
 
 import { getConnectorsSearchResultProvider } from './utils/connectors_search_result_provider';
@@ -102,35 +76,6 @@ import { getIndicesSearchResultProvider } from './utils/indices_search_result_pr
 import { getSearchResultProvider } from './utils/search_result_provider';
 
 import { ConfigType } from '.';
-
-interface PluginsSetup {
-  cloud: CloudSetup;
-  customIntegrations?: CustomIntegrationsPluginSetup;
-  features: FeaturesPluginSetup;
-  globalSearch: GlobalSearchPluginSetup;
-  guidedOnboarding?: GuidedOnboardingPluginSetup;
-  logsShared: LogsSharedPluginSetup;
-  ml?: MlPluginSetup;
-  licensing: LicensingPluginStart;
-  searchConnectors?: SearchConnectorsPluginSetup;
-  security: SecurityPluginSetup;
-  usageCollection?: UsageCollectionSetup;
-}
-
-export interface PluginsStart {
-  data: DataPluginStart;
-  spaces?: SpacesPluginStart;
-}
-
-export interface RouteDependencies {
-  config: ConfigType;
-  enterpriseSearchRequestHandler: IEnterpriseSearchRequestHandler;
-  getSavedObjectsService?(): SavedObjectsServiceStart;
-  globalConfigService: GlobalConfigService;
-  log: Logger;
-  ml?: MlPluginSetup;
-  router: IRouter;
-}
 
 export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, PluginsStart> {
   private readonly config: ConfigType;
@@ -169,17 +114,21 @@ export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, 
       ENTERPRISE_SEARCH_OVERVIEW_PLUGIN.ID,
       ENTERPRISE_SEARCH_CONTENT_PLUGIN.ID,
       ELASTICSEARCH_PLUGIN.ID,
-      APP_SEARCH_PLUGIN.ID,
-      WORKPLACE_SEARCH_PLUGIN.ID,
       SEARCH_EXPERIENCES_PLUGIN.ID,
       VECTOR_SEARCH_PLUGIN.ID,
       SEMANTIC_SEARCH_PLUGIN.ID,
       AI_SEARCH_PLUGIN.ID,
+      SEARCH_INDICES,
+      SEARCH_INDICES_START,
     ];
     const isCloud = !!cloud?.cloudId;
 
     if (customIntegrations) {
-      registerEnterpriseSearchIntegrations(config, customIntegrations);
+      registerEnterpriseSearchIntegrations(
+        config,
+        customIntegrations,
+        http.staticAssets.getPluginAssetHref('images/crawler.svg')
+      );
     }
 
     /*
@@ -290,20 +239,19 @@ export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, 
      */
     const router = http.createRouter();
     const enterpriseSearchRequestHandler = new EnterpriseSearchRequestHandler({ config, log });
-    const dependencies = {
-      router,
+    const dependencies: RouteDependencies = {
       config,
-      globalConfigService: this.globalConfigService,
-      log,
       enterpriseSearchRequestHandler,
-      ml,
+      getStartServices,
+      globalConfigService: this.globalConfigService,
       licensing,
+      log,
+      ml,
+      router,
     };
 
     registerConfigDataRoute(dependencies);
-    registerAppSearchRoutes(dependencies);
     registerEnterpriseSearchRoutes(dependencies);
-    registerWorkplaceSearchRoutes(dependencies);
     // Enterprise Search Routes
     if (config.hasConnectors) registerConnectorRoutes(dependencies);
     if (config.hasWebCrawler) registerCrawlerRoutes(dependencies);
@@ -330,8 +278,6 @@ export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, 
       if (usageCollection) {
         registerESTelemetryUsageCollector(usageCollection, savedObjectsStarted, this.logger);
         registerCNTelemetryUsageCollector(usageCollection, this.logger);
-        registerASTelemetryUsageCollector(usageCollection, savedObjectsStarted, this.logger);
-        registerWSTelemetryUsageCollector(usageCollection, savedObjectsStarted, this.logger);
       }
     });
     registerTelemetryRoute({ ...dependencies, getSavedObjectsService: () => savedObjectsStarted });
@@ -367,7 +313,6 @@ export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, 
     /**
      * Register a config for the search guide
      */
-    guidedOnboarding?.registerGuideConfig(appSearchGuideId, appSearchGuideConfig);
     if (config.hasWebCrawler) {
       guidedOnboarding?.registerGuideConfig(websiteSearchGuideId, websiteSearchGuideConfig);
     }
@@ -381,12 +326,7 @@ export class EnterpriseSearchPlugin implements Plugin<void, void, PluginsSetup, 
 
     if (globalSearch) {
       globalSearch.registerResultProvider(
-        getSearchResultProvider(
-          config,
-          searchConnectors?.getConnectorTypes() || [],
-          isCloud,
-          http.staticAssets.getPluginAssetHref('images/crawler.svg')
-        )
+        getSearchResultProvider(config, searchConnectors?.getConnectorTypes() || [], isCloud)
       );
       globalSearch.registerResultProvider(getIndicesSearchResultProvider(http.staticAssets));
       globalSearch.registerResultProvider(getConnectorsSearchResultProvider(http.staticAssets));
