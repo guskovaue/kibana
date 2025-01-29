@@ -9,7 +9,7 @@
 
 import { schema } from '@kbn/config-schema';
 import { COMPARATORS } from '@kbn/alerting-comparators';
-import { dataViewSpecSchema } from '@kbn/data-views-plugin/server/rest_api_routes/schema';
+import { dataViewSpecSchema } from '../common';
 import { oneOfLiterals, validateKQLStringFilter, LEGACY_COMPARATORS } from '../common/utils';
 
 enum Aggregators {
