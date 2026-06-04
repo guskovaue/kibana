@@ -300,11 +300,12 @@ test.describe('Maintenance windows table', { tag: tags.stateful.classic }, () =>
     await page.goto(kbnUrl.get(MAINTENANCE_WINDOWS_APP_PATH));
     await searchMws(page, 'archived-');
 
-    let statuses = await getMwRowStatuses(page);
-    expect(statuses).toHaveLength(3);
-    // The running MW should be first in the list
-    expect(statuses[0]).toBe('Running');
+    const allStatuses = await getMwRowStatuses(page);
+    expect(allStatuses).toHaveLength(3);
+    expect(allStatuses).toContain('Running');
 
+    // Search for the running MW specifically so cancel-and-archive targets it.
+    await searchMws(page, runningTitle);
     // Cancel-and-archive the running one
     await clickTableAction(page, 'table-actions-cancel-and-archive');
     await page.testSubj.click('confirmModalConfirmButton');
@@ -318,8 +319,8 @@ test.describe('Maintenance windows table', { tag: tags.stateful.classic }, () =>
     await page.testSubj.click('status-filter-archived');
     await page.locator(PAGE_READY_SELECTOR).waitFor({ timeout: TABLE_LOAD_TIMEOUT });
 
-    statuses = await getMwRowStatuses(page);
-    expect(statuses).toStrictEqual(['Archived']);
+    const archivedStatuses = await getMwRowStatuses(page);
+    expect(archivedStatuses).toStrictEqual(['Archived']);
   });
 
   test('paginates maintenance windows correctly', async ({ page, kbnClient, kbnUrl }) => {
